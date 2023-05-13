@@ -18,7 +18,8 @@ from sklearn.model_selection import KFold
 
 # Parameters:
 epoch = 5
-learning_rate = 0.00003
+learning_rate1 = 0.0003
+learning_rate2 = 0.0008
 
 ### Get Data
 #Task Name
@@ -33,10 +34,10 @@ shape = dataset.getImgShape()
 
 AE1 = AE1()
 
-# AE2 = AE2()
+AE2 = AE2()
 
-optimizer1 = torch.optim.Adam(AE1.parameters(),lr=learning_rate)
-# optimizer2 = torch.optim.Adam(AE2.parameters(),lr=learning_rate)
+optimizer1 = torch.optim.Adam(AE1.parameters(),lr=learning_rate1)
+optimizer2 = torch.optim.Adam(AE2.parameters(),lr=learning_rate2)
 loss_func = nn.MSELoss()
 
 for e in range(epoch):
@@ -50,27 +51,18 @@ for e in range(epoch):
         loss.backward()
         optimizer1.step()
         print('Epoch :', e,'|','AEH train_loss:%.4f'%loss.data)
-    random.shuffle(dataset_cp)
+
+
     for step,(x,y) in enumerate(dataset_cp):
         x = torch.tensor(np.array(x).reshape(shape[0],shape[1])).float()
         encoded1,decoded1 = AE1(x)
-        loss = loss_func(decoded1, x)
-        optimizer1.zero_grad()
+        en_x = encoded1.ravel()
+        encoded2, decoded2 = AE2(en_x)
+        loss = loss_func(decoded2, en_x)
+        optimizer2.zero_grad()
         loss.backward()
-        optimizer1.step()
-        print('Epoch :', e,'|','AEH train_loss:%.4f'%loss.data)
-
-
-    # for step,(x,y) in enumerate(dataset_cp):
-    #     x = torch.tensor(np.array(x).reshape(shape[0],shape[1])).float()
-    #     encoded1,decoded1 = AE1(x)
-    #     en_x = encoded1.ravel()
-    #     encoded2, decoded2 = AE2(en_x)
-    #     loss = loss_func(decoded2, en_x)
-    #     optimizer2.zero_grad()
-    #     loss.backward()
-    #     optimizer2.step()
-    #     print('Epoch :', e,'|','AEL train_loss:%.4f'%loss.data)
+        optimizer2.step()
+        print('Epoch :', e,'|','AEL train_loss:%.4f'%loss.data)
 
 
 print('________________________________________')
@@ -110,22 +102,32 @@ for data, description in dataset:
     x = torch.tensor(np.array(data).reshape(shape[0],shape[1])).float()
 
     encoded_x, decoded_x = AE1(x)
-    # encoded_x = encoded_x.ravel()
-    # encoded_x, decoded_x = AE2(encoded_x)
-    # decoded_x = torch.reshape(decoded_x, [2902,3])
+
+
+    encoded_x = encoded_x.ravel()
+    encoded_x, decoded_x2 = AE2(encoded_x)
+    decoded_x2 = torch.reshape(decoded_x2, [2902,3])
 
     im_result = decoded_x
+    im_result2 = decoded_x2
     # print(im_result.size())
     plt.figure(1, figsize=(10, 3))
-    plt.subplot(121)
+    plt.subplot(131)
     plt.title(description)
     plt.imshow(x.numpy(),cmap='Greys', vmin = 0, vmax= 8000, aspect='auto')
 
     plt.figure(1, figsize=(10, 3))
-    plt.subplot(122)
-    plt.title('Auto Encoder Edge')
+    plt.subplot(132)
+    plt.title('Auto Encoder 1 Edge')
     plt.imshow(im_result.detach().numpy(), vmin = 0, vmax= 8000, cmap='Greys', aspect='auto')
+
+    plt.figure(1, figsize=(10, 3))
+    plt.subplot(133)
+    plt.title('Auto Encoder 2 Edge')
+    plt.imshow(im_result2.detach().numpy(),  vmin = 0, vmax= 100, cmap='Greys', aspect='auto')
+    plt.colorbar()
     plt.show()
+    
     plt.pause(1)
 
 plt.ioff()
