@@ -10,82 +10,17 @@ from fmri import *
 from tqdm import tqdm
 from statistics import mean
 from sklearn import metrics
+from ae1 import AutoEncoder as AE1
+from ae2 import AutoEncoder as AE2
 from mpl_toolkits.mplot3d import Axes3D
 from sklearn.model_selection import KFold
 
 
 # Parameters:
 epoch = 5
-learning_rate = 0.01
-
-### Define CNN
-class AutoEncoder(nn.Module):
-    def __init__(self):
-        super(AutoEncoder,self).__init__()
-
-        # self.conv1 = nn.Conv2d(in_channels=1, out_channels=1, kernel_size = (4, 4))
-        # self.pool1 = nn.MaxPool2d((3, 1))
-
-        # self.conv2 = nn.Conv2d(in_channels=1, out_channels=1, kernel_size = (4, 4))
-        # self.pool2 = nn.MaxPool2d((3, 1))
-        self.encoder1  =  nn.Sequential(
-            nn.Linear(358, 100),
-            nn.Tanh(),
-            nn.Linear(100, 50),
-            nn.Tanh(),
-            nn.Linear(50, 16),
-            nn.Tanh(),
-            nn.Linear(16, 3),
-        )
-        self.encoder2  =  nn.Sequential(
-            nn.Linear(2902*3, 500),
-            nn.Tanh(),
-            nn.Linear(500, 100),
-            nn.Tanh(),
-            nn.Linear(100, 20),
-            nn.Tanh(),
-            nn.Linear(20, 3)
-        )
-        self.decoder1 = nn.Sequential(
-            nn.Linear(3,20),
-            nn.Tanh(),
-            nn.Linear(20, 100),
-            nn.Tanh(),
-            nn.Linear(100, 500),
-            nn.Tanh(),
-            nn.Linear(500, 2902*3),
-        )
-        self.decoder2  =  nn.Sequential(
-            nn.Linear(3, 16),
-            nn.Tanh(),
-            nn.Linear(16, 50),
-            nn.Tanh(),
-            nn.Linear(50, 100),
-            nn.Tanh(),
-            nn.Linear(100, 358)
-        )
-
-    def forward(self, x):
-        # x = self.pool1(F.relu(self.conv1(x)))
-        # x = self.pool2(F.relu(self.conv2(x)))
-        x = self.encoder1(x)
-        x = x.ravel()
-        encoded = self.encoder2(x)
-
-        # print("******************************************")
-        # print(encoded)
-        # print("******************************************")
-
-        decoded = self.decoder1(encoded)
-        # print("******************************************")
-        # print(decoded)
-        # print("******************************************")
-        decoded = torch.reshape(decoded, [2902,3])
-        decoded = self.decoder2(decoded)
-        return encoded,decoded
+learning_rate = 0.00003
 
 ### Get Data
-
 #Task Name
 task = "DMS"
 #Area of Brain
@@ -96,70 +31,76 @@ dataset_cp = list(dataset)
 shape = dataset.getImgShape()
 
 
-AE = AutoEncoder()
+AE1 = AE1()
 
-optimizer = torch.optim.Adam(AE.parameters(),lr=learning_rate)
+# AE2 = AE2()
+
+optimizer1 = torch.optim.Adam(AE1.parameters(),lr=learning_rate)
+# optimizer2 = torch.optim.Adam(AE2.parameters(),lr=learning_rate)
 loss_func = nn.MSELoss()
 
 for e in range(epoch):
     print("Epoch ", e, ":")
     random.shuffle(dataset_cp)
     for step,(x,y) in enumerate(dataset_cp):
-        b_x = torch.tensor(np.array(x).reshape(shape[0],shape[1])).float()
-        
-        encoded,decoded = AE(b_x)
-        loss = loss_func(decoded,b_x)
-
-        optimizer.zero_grad()
+        x = torch.tensor(np.array(x).reshape(shape[0],shape[1])).float()
+        encoded1,decoded1 = AE1(x)
+        loss = loss_func(decoded1, x)
+        optimizer1.zero_grad()
         loss.backward()
-        optimizer.step()
-
-        print('Epoch :', e,'|','train_loss:%.4f'%loss.data)
+        optimizer1.step()
+        print('Epoch :', e,'|','AEH train_loss:%.4f'%loss.data)
     random.shuffle(dataset_cp)
     for step,(x,y) in enumerate(dataset_cp):
-        b_x = torch.tensor(np.array(x).reshape(shape[0],shape[1])).float()
-        
-        encoded,decoded = AE(b_x)
-        loss = loss_func(decoded,b_x)
-
-        optimizer.zero_grad()
+        x = torch.tensor(np.array(x).reshape(shape[0],shape[1])).float()
+        encoded1,decoded1 = AE1(x)
+        loss = loss_func(decoded1, x)
+        optimizer1.zero_grad()
         loss.backward()
-        optimizer.step()
+        optimizer1.step()
+        print('Epoch :', e,'|','AEH train_loss:%.4f'%loss.data)
 
-        print('Epoch :', e,'|','train_loss:%.4f'%loss.data)
+
+    # for step,(x,y) in enumerate(dataset_cp):
+    #     x = torch.tensor(np.array(x).reshape(shape[0],shape[1])).float()
+    #     encoded1,decoded1 = AE1(x)
+    #     en_x = encoded1.ravel()
+    #     encoded2, decoded2 = AE2(en_x)
+    #     loss = loss_func(decoded2, en_x)
+    #     optimizer2.zero_grad()
+    #     loss.backward()
+    #     optimizer2.step()
+    #     print('Epoch :', e,'|','AEL train_loss:%.4f'%loss.data)
 
 
 print('________________________________________')
 print('finish training')
 
-outputs = torch.empty((0, 3), dtype=torch.float32)
-for data, _ in dataset:
-    x = torch.tensor(np.array(data).reshape(shape[0],shape[1])).float()
-    encoded_data, _ = AE(x)
-    print(encoded_data)
-    outputs = torch.cat((outputs, encoded_data.view(1,3)),0)
 
-# print(encoded_data)
+# outputs = torch.empty((0, 3), dtype=torch.float32)
+# for data, _ in dataset:
+#     x = torch.tensor(np.array(data).reshape(shape[0],shape[1])).float()
+#     encoded_x, _ = AE1(x)
+#     encoded_x = encoded_x.ravel()
+#     encoded_x, _ = AE2(encoded_x)
+#     print(encoded_x)
+#     outputs = torch.cat((outputs, encoded_x.view(1,3)),0)
+# fig = plt.figure(2)
+# ax = Axes3D(fig)
 
-fig = plt.figure(2)
-ax = Axes3D(fig)
+# X = outputs.data[:, 0].numpy()
+# Y = outputs.data[:, 1].numpy()
+# Z = outputs.data[:, 2].numpy()
 
+# values = np.array(dataset.images_descriptions)
+# for x, y, z, s in zip(X, Y, Z, values):
+#     ax.text(x, y, z, s)
 
-X = outputs.data[:, 0].numpy()
-Y = outputs.data[:, 1].numpy()
-Z = outputs.data[:, 2].numpy()
+# ax.set_xlim(X.min(), X.max())
+# ax.set_ylim(Y.min(), Y.max())
+# ax.set_zlim(Z.min(), Z.max())
+# plt.show()
 
-
-
-values = np.array(dataset.images_descriptions)
-for x, y, z, s in zip(X, Y, Z, values):
-    ax.text(x, y, z, s)
-
-ax.set_xlim(X.min(), X.max())
-ax.set_ylim(Y.min(), Y.max())
-ax.set_zlim(Z.min(), Z.max())
-
-plt.show()
 
 plt.ion()
 plt.show()
@@ -167,19 +108,23 @@ plt.show()
 
 for data, description in dataset:
     x = torch.tensor(np.array(data).reshape(shape[0],shape[1])).float()
-    _,result = AE(x)
 
-    im_result = result
+    encoded_x, decoded_x = AE1(x)
+    # encoded_x = encoded_x.ravel()
+    # encoded_x, decoded_x = AE2(encoded_x)
+    # decoded_x = torch.reshape(decoded_x, [2902,3])
+
+    im_result = decoded_x
     # print(im_result.size())
     plt.figure(1, figsize=(10, 3))
     plt.subplot(121)
     plt.title(description)
-    plt.imshow(x.numpy(),cmap='Greys', aspect='auto')
+    plt.imshow(x.numpy(),cmap='Greys', vmin = 0, vmax= 8000, aspect='auto')
 
     plt.figure(1, figsize=(10, 3))
     plt.subplot(122)
     plt.title('Auto Encoder Edge')
-    plt.imshow(im_result.detach().numpy(), cmap='Greys', aspect='auto')
+    plt.imshow(im_result.detach().numpy(), vmin = 0, vmax= 8000, cmap='Greys', aspect='auto')
     plt.show()
     plt.pause(1)
 

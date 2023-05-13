@@ -3,6 +3,7 @@ import cv2
 import torch
 import numpy as np
 import pandas as pd
+import scipy.signal
 import matplotlib.pyplot as plt
 
 from tqdm import tqdm
@@ -26,6 +27,18 @@ class FMRIData():
             # checking if it is a file
             if (task in filename) and (area in filename):
                 df = pd.read_csv(filename, sep=",", header=None)
+
+                fs = 0.9
+
+                psd_df = []
+                
+
+                for index, row in df.iterrows():
+
+                    (f, S) = scipy.signal.periodogram(np.array(row), fs, scaling='density')
+
+                    psd_df.append(S)
+
                 # N = len(df.columns)
                 # fft_df = []
 
@@ -35,17 +48,19 @@ class FMRIData():
                 #     fft_row = ifft(fft_row).real.tolist()
                 #     fft_freq_row = np.fft.fftfreq(N, d=1.111)[:N//2]
                 #     fft_df.append(fft_row[:N//2])
-                
-                # # extent = [0,0,0,0]
-                # # extent[1] = fft_freq_row[len(fft_freq_row)-1]
-                # # extent[2] =  len(fft_df) - 1
-                # # plt.imshow(np.array(fft_df, dtype=float), extent=extent, cmap='Greys', vmin = -2500, vmax= 2500, aspect='auto')
-                # # plt.xlabel("Frequency")
-                # # plt.ylabel("Voxels")
-                # # plt.savefig(os.path.join(r'C:\Users\Heng\Desktop\spectrograms', filename.replace('.1D','')+'.png'), bbox_inches='tight')
-                # # plt.close("all")
+                # self.images.append(fft_df)
 
-                self.images.append(df.values.tolist())
+
+
+                # extent = [0,0,0,0]
+                # plt.imshow(np.array(psd_df, dtype=float), cmap='Greys', vmin = 0, vmax= 6000, aspect='auto')
+                # plt.xlabel("Frequency")
+                # plt.ylabel("Voxels")
+                # plt.colorbar()
+                # plt.savefig(os.path.join(r'C:\Users\Heng\Desktop\spectrograms', filename.replace('.1D','')+'.png'), bbox_inches='tight')
+                # plt.close("all")
+
+                self.images.append(psd_df)
                 self.images_descriptions.append(filename)
 
         print("All fMRI data are Fourier transformed")
