@@ -1,6 +1,5 @@
 import os
 import cv2
-import torch
 import numpy as np
 import pandas as pd
 import scipy.signal
@@ -8,14 +7,14 @@ import matplotlib.pyplot as plt
 
 from tqdm import tqdm
 from scipy.fft import fft, ifft
-from torchvision import transforms
+from sklearn.preprocessing import StandardScaler
 
 # Location of fMRI data
 fmri_path = r'C:\Users\Heng\Desktop\interpol-B-20230503T012138Z-004\interpol-B'
 # Location of Psychology data
 psy_path = r'C:\Users\Heng\Desktop\Raw_csv_Psychopy-20230505T025025Z-001\Raw_csv_Psychopy'
 
-class FMRIData():
+class Dataset():
 
     '''
     dataset: the name of dataset to be loaded
@@ -32,11 +31,13 @@ class FMRIData():
         # labels are binary
         self.labels    = []
 
+        scaler = StandardScaler()
+
         print("Loading Labels")
         for filename in tqdm(os.listdir(fmri_path)):
             # checking if it is a file
             if (task in filename) and (area in filename):
-                df = pd.read_csv(filename, sep=",", header=None)
+                df = pd.read_csv(os.path.join(fmri_path, filename), sep=",", header=None)
                 fs = 0.9
                 psd_df = []
                 for index, row in df.iterrows():
@@ -68,16 +69,47 @@ class FMRIData():
 
                 self.psd.append(psd_mean)
                 self.ids.append(filename.split('_')[2])
-                self.run.append(1 if '1' in filename.split('_')[1] else 2)
-        median_of_participants = np.median(self.psd, axis=0)
+                self.run.append('1' if '1' in filename.split('_')[1] else '2')
+        mean_of_participants = np.mean(self.psd, axis=0)
         for p in self.psd:
-            self.labels.append(0 if np.sum(p - median_of_participants)< 0 else 1)
+            self.labels.append(0 if np.sum(p - mean_of_participants)< 0 else 1)
         print("Labels Loaded")
 
         print("Loading Features")
-        for id in tqdm(self.ids):
-            os.path.join(psy_path, )
-            df = pd.read_csv(psy_path, sep=",", header=None)
+        labels_to_be_deleted = []
+        for index, id in tqdm(enumerate(self.ids)):
+            path_of_raw_data = os.path.join(psy_path, id)
+            path_of_raw_data = os.path.join(path_of_raw_data, os.listdir(path_of_raw_data)[0])
+            found = False
+            for filename2 in os.listdir(path_of_raw_data):
+                if self.run[index] in filename2 and self.task in filename2 and 'MRI' in filename2:
+                    found = True
+                    df = pd.read_csv(os.path.join(path_of_raw_data, filename2), encoding= 'unicode_escape', on_bad_lines='skip')
+                    round_feature   = df['Load'].max()
+                    round1_res_mean = (df['StartTime'][ 5] - df['StartTime'][ 0])/5
+                    round2_res_mean = (df['StartTime'][12] - df['StartTime'][ 7])/5
+                    round3_res_mean = (df['StartTime'][19] - df['StartTime'][14])/5
+                    round4_res_mean = (df['StartTime'][26] - df['StartTime'][21])/5
+                    round5_res_mean = (df['StartTime'][33] - df['StartTime'][28])/5
+                    round1_corre    = sum(df['corr'][ 0: 5].values.tolist())
+                    round2_corre    = sum(df['corr'][ 7:12].values.tolist())
+                    round3_corre    = sum(df['corr'][14:19].values.tolist())
+                    round4_corre    = sum(df['corr'][21:26].values.tolist())
+                    round5_corre    = sum(df['corr'][28:33].values.tolist())
+                    self.features.append([round_feature, round1_res_mean, round2_res_mean, round3_res_mean, round4_res_mean, round5_res_mean,
+                                         round1_corre, round2_corre, round3_corre, round4_corre, round5_corre])
+                    break
+            if not found:
+                # no corresponding raw psy data, remove the label
+                labels_to_be_deleted.append(index)
+        labels_to_be_deleted.reverse()
+        for index in labels_to_be_deleted:
+                del self.ids[index]
+                del self.run[index]
+                del self.labels[index]
+        scaler.fit(self.features)
+        self.features = scaler.transform(self.features)
+
         
         
     def __len__(self):
@@ -88,9 +120,6 @@ class FMRIData():
         @param: index: int, location of data instance
         @return: sentence vector and label
         '''
-
-        return self.descriptions[index], self.labels[index]
-
-    def getImgShape(self):
-        return len(self.images[0]), len(self.images[0][0]) 
+        return self.features[index], self.labels[index]
+    
 
