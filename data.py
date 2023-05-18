@@ -33,7 +33,7 @@ class Dataset():
 
         scaler = StandardScaler()
 
-        print("Loading Labels")
+        print("Loading ", self.area," Labels")
         for filename in tqdm(os.listdir(fmri_path)):
             # checking if it is a file
             if (task in filename) and (area in filename):
@@ -85,19 +85,39 @@ class Dataset():
                 if self.run[index] in filename2 and self.task in filename2 and 'MRI' in filename2:
                     found = True
                     df = pd.read_csv(os.path.join(path_of_raw_data, filename2), encoding= 'unicode_escape', on_bad_lines='skip')
+                    df = df.replace(np.nan,-10)
+                    df = df.replace("None", 0)
                     round_feature   = df['Load'].max()
                     round1_res_mean = (df['StartTime'][ 5] - df['StartTime'][ 0])/5
                     round2_res_mean = (df['StartTime'][12] - df['StartTime'][ 7])/5
                     round3_res_mean = (df['StartTime'][19] - df['StartTime'][14])/5
                     round4_res_mean = (df['StartTime'][26] - df['StartTime'][21])/5
                     round5_res_mean = (df['StartTime'][33] - df['StartTime'][28])/5
-                    round1_corre    = sum(df['corr'][ 0: 5].values.tolist())
-                    round2_corre    = sum(df['corr'][ 7:12].values.tolist())
-                    round3_corre    = sum(df['corr'][14:19].values.tolist())
-                    round4_corre    = sum(df['corr'][21:26].values.tolist())
-                    round5_corre    = sum(df['corr'][28:33].values.tolist())
+                    round1_corr    = sum(df['corr'][ 0: 5].values.tolist())
+                    round2_corr    = sum(df['corr'][ 7:12].values.tolist())
+                    round3_corr    = sum(df['corr'][14:19].values.tolist())
+                    round4_corr    = sum(df['corr'][21:26].values.tolist())
+                    round5_corr    = sum(df['corr'][28:33].values.tolist())
+                    round1_res_corr    = sum(df['resp.corr'][ 0: 5].values.tolist())
+                    round2_res_corr    = sum(df['resp.corr'][ 7:12].values.tolist())
+                    round3_res_corr    = sum(df['resp.corr'][14:19].values.tolist())
+                    round4_res_corr    = sum(df['resp.corr'][21:26].values.tolist())
+                    round5_res_corr    = sum(df['resp.corr'][28:33].values.tolist())
+                    round1_res_rt      = sum(df['resp.rt'][ 0: 5].values.tolist())/5
+                    round2_res_rt      = sum(df['resp.rt'][ 7:12].values.tolist())/5
+                    round3_res_rt      = sum(df['resp.rt'][14:19].values.tolist())/5
+                    round4_res_rt      = sum(df['resp.rt'][21:26].values.tolist())/5
+                    round5_res_rt      = sum(df['resp.rt'][28:33].values.tolist())/5
+                    round1_res_key     = sum(pd.to_numeric(df['resp.keys'])[ 0: 5].values.tolist())
+                    round2_res_key     = sum(pd.to_numeric(df['resp.keys'])[ 7:12].values.tolist())
+                    round3_res_key     = sum(pd.to_numeric(df['resp.keys'])[14:19].values.tolist())
+                    round4_res_key     = sum(pd.to_numeric(df['resp.keys'])[21:26].values.tolist())
+                    round5_res_key     = sum(pd.to_numeric(df['resp.keys'])[28:33].values.tolist())
                     self.features.append([round_feature, round1_res_mean, round2_res_mean, round3_res_mean, round4_res_mean, round5_res_mean,
-                                         round1_corre, round2_corre, round3_corre, round4_corre, round5_corre])
+                                         round1_corr, round2_corr, round3_corr, round4_corr, round5_corr,
+                                         round1_res_corr, round2_res_corr, round3_res_corr, round4_res_corr, round5_res_corr,
+                                         round1_res_rt, round2_res_rt, round3_res_rt, round4_res_rt, round5_res_rt,
+                                         round1_res_key, round2_res_key, round3_res_key, round4_res_key, round5_res_key])
                     break
             if not found:
                 # no corresponding raw psy data, remove the label
