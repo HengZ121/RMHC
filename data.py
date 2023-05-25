@@ -46,6 +46,11 @@ class Dataset():
 
                     psd_df.append(S)
                 
+                for S in psd_df:
+                    ave_signal_strength = np.mean(S)
+                    for s in S:
+                        s = (s - ave_signal_strength) if s > ave_signal_strength else (ave_signal_strength - s)
+                
                 psd_df = np.array(psd_df)
                 psd_mean = np.mean(psd_df, axis=0)
 
@@ -127,6 +132,10 @@ class Dataset():
         mean_of_participants = np.mean(self.psd, axis=0)
         for p in self.psd:
             self.labels.append(0 if np.sum(p - mean_of_participants)< 0 else 1)
+            y = p - mean_of_participants
+            x = np.array([i for i in range(len(y))])
+            plt.scatter(x, y, color="red")
+            plt.show()
             # x.append(np.sum(p - mean_of_participants))
         print("Labels Loaded")
         # x = np.sort(np.array(x))
