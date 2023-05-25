@@ -9,6 +9,7 @@ from tqdm import tqdm
 from scipy.fft import fft, ifft
 from sklearn.preprocessing import StandardScaler
 
+
 # Location of fMRI data
 fmri_path = r'C:\Users\Heng\Desktop\interpol-B-20230503T012138Z-004\interpol-B'
 # Location of Psychology data
@@ -70,10 +71,6 @@ class Dataset():
                 self.psd.append(psd_mean)
                 self.ids.append(filename.split('_')[2])
                 self.run.append('1' if '1' in filename.split('_')[1] else '2')
-        mean_of_participants = np.mean(self.psd, axis=0)
-        for p in self.psd:
-            self.labels.append(0 if np.sum(p - mean_of_participants)< 0 else 1)
-        print("Labels Loaded")
 
         print("Loading Features")
         labels_to_be_deleted = []
@@ -126,7 +123,21 @@ class Dataset():
         for index in labels_to_be_deleted:
                 del self.ids[index]
                 del self.run[index]
-                del self.labels[index]
+                del self.psd[index]
+        mean_of_participants = np.mean(self.psd, axis=0)
+        # x = []
+        for p in self.psd:
+            self.labels.append(np.sum(p - mean_of_participants))
+        self.labels = (self.labels-np.min(self.labels))/(np.max(self.labels)-np.min(self.labels))
+
+        #     x.append(np.sum(p - mean_of_participants))
+        # x = np.sort(np.array(x))
+        # y = np.array([i for i in range(len(x))])
+        # print("Labels Loaded")
+        # plt.title(self.area)
+        # plt.scatter(y, x, color="red")
+        # plt.show()
+
         scaler.fit(self.features)
         self.features = scaler.transform(self.features)
 
