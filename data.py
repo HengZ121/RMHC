@@ -128,12 +128,13 @@ class Dataset():
         # x = []
         for p in self.psd:
             self.labels.append(np.sum(p - mean_of_participants))
+            
+            # x.append(np.sum(p - mean_of_participants))
         self.labels = (self.labels-np.min(self.labels))/(np.max(self.labels)-np.min(self.labels))
-
-        #     x.append(np.sum(p - mean_of_participants))
+        print("Labels Loaded")
         # x = np.sort(np.array(x))
         # y = np.array([i for i in range(len(x))])
-        # print("Labels Loaded")
+        
         # plt.title(self.area)
         # plt.scatter(y, x, color="red")
         # plt.show()
