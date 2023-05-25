@@ -18,7 +18,7 @@ VISUAL1_right = Dataset('DMS', 'VISUAL1_right')
 
 brain_areas = [DLPFC_left, DLPFC_right, Hippo_left, MOTOR1_left, VISUAL1_left, VISUAL1_right]
 
-kf = KFold(n_splits=5)
+kf = KFold(n_splits=4)
 for area in brain_areas:
     fold = 1
     print('***************************************************************')
@@ -46,12 +46,8 @@ for area in brain_areas:
         a.append(accuracy_score(y_test, y_pred))
         fold+=1
 
-        p.sort()
-        r.sort()
-        a.sort()
-
-    print("*", " Average Precision Score is: ", statistics.mean(p[1:5]))
-    print("*", " Average Recall Score is: ", statistics.mean(r[1:5]))
-    print("*", " Average Accuracy Score is: ", statistics.mean(a[1:5]))
+    print("*", " Average Precision Score is: ", statistics.mean(p))
+    print("*", " Average Recall Score is: ", statistics.mean(r))
+    print("*", " Average Accuracy Score is: ", statistics.mean(a))
     print('***************************************************************')
     print()
