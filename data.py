@@ -1,5 +1,6 @@
 import os
 import cv2
+import torch
 import numpy as np
 import pandas as pd
 import scipy.signal
@@ -41,6 +42,10 @@ class Dataset():
                 fs = 0.9
                 psd_df = []
                 for index, row in df.iterrows():
+
+                    ave_activity_strength = row.sum()/len(row)
+                    for t in row:
+                        t = t - ave_activity_strength if t > ave_activity_strength else ave_activity_strength - t
 
                     (f, S) = scipy.signal.periodogram(np.array(row), fs, scaling='density')
 
@@ -114,11 +119,12 @@ class Dataset():
                     round3_res_key     = sum(pd.to_numeric(df['resp.keys'])[14:19].values.tolist())
                     round4_res_key     = sum(pd.to_numeric(df['resp.keys'])[21:26].values.tolist())
                     round5_res_key     = sum(pd.to_numeric(df['resp.keys'])[28:33].values.tolist())
-                    self.features.append([round_feature, round1_res_mean, round2_res_mean, round3_res_mean, round4_res_mean, round5_res_mean,
-                                         round1_corr, round2_corr, round3_corr, round4_corr, round5_corr,
-                                         round1_res_corr, round2_res_corr, round3_res_corr, round4_res_corr, round5_res_corr,
-                                         round1_res_rt, round2_res_rt, round3_res_rt, round4_res_rt, round5_res_rt,
-                                         round1_res_key, round2_res_key, round3_res_key, round4_res_key, round5_res_key])
+                    self.features.append([[round_feature, round_feature, round_feature, round_feature, round_feature],
+                                         [round1_res_mean, round2_res_mean, round3_res_mean, round4_res_mean, round5_res_mean],
+                                         [round1_corr, round2_corr, round3_corr, round4_corr, round5_corr],
+                                         [round1_res_corr, round2_res_corr, round3_res_corr, round4_res_corr, round5_res_corr],
+                                         [round1_res_rt, round2_res_rt, round3_res_rt, round4_res_rt, round5_res_rt],
+                                         [round1_res_key, round2_res_key, round3_res_key, round4_res_key, round5_res_key]])
                     break
             if not found:
                 # no corresponding raw psy data, remove the label
@@ -128,24 +134,15 @@ class Dataset():
                 del self.ids[index]
                 del self.run[index]
                 del self.psd[index]
-        x = []
-        mean_of_participants = np.mean(self.psd, axis=0)
+        y = []
         for p in self.psd:
-            self.labels.append(0 if np.sum(p - mean_of_participants)< 0 else 1)
-            y = p - mean_of_participants
-            x = np.array([i for i in range(len(y))])
-            plt.scatter(x, y, color="red")
-            plt.show()
-            # x.append(np.sum(p - mean_of_participants))
-        print("Labels Loaded")
-        # x = np.sort(np.array(x))
-        # y = np.array([i for i in range(len(x))])
-        # print("Labels Loaded")
-        # plt.title(self.area)
-        # plt.scatter(y, x, color="red")
+            y.append(np.sum(p))
+        self.labels = (y-min(y))/(max(y)-min(y))
+        # y = self.labels
+        # x = np.array([i for i in range(len(y))])
+        # plt.scatter(x, y, color="red")
         # plt.show()
-        scaler.fit(self.features)
-        self.features = scaler.transform(self.features)
+        print("Labels Loaded")
 
         
         
@@ -157,6 +154,6 @@ class Dataset():
         @param: index: int, location of data instance
         @return: sentence vector and label
         '''
-        return self.features[index], self.labels[index]
+        return torch.tensor(self.features[index],dtype=torch.float), torch.tensor(self.labels[index],dtype=torch.float)
     
 
