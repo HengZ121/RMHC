@@ -18,7 +18,7 @@ VISUAL1_right = Dataset('DMS', 'VISUAL1_right')
 
 brain_areas = [DLPFC_left, DLPFC_right, Hippo_left, MOTOR1_left, VISUAL1_left, VISUAL1_right]
 
-kf = KFold(n_splits=4)
+kf = KFold(n_splits=5)
 for area in brain_areas:
     fold = 1
     print('***************************************************************')
