@@ -14,37 +14,45 @@ from sklearn import metrics
 from sklearn.metrics import r2_score
 from mpl_toolkits.mplot3d import Axes3D
 from sklearn.model_selection import KFold
+from sklearn.metrics import recall_score
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import precision_score
 from sklearn.metrics import mean_squared_error
 
-# DLPFC_left = Dataset('DMS', 'DLPFC_left')
-# DLPFC_right = Dataset('DMS', 'DLPFC_right')
-MOTOR1_left = Dataset('DMS', 'MOTOR1_left')
-# VISUAL1_left = Dataset('DMS', 'VISUAL1_left')
-# VISUAL1_right = Dataset('DMS', 'VISUAL1_right')
+# DLPFC_left = Dataset('DLPFC_left')
+# DLPFC_right = Dataset('DLPFC_right')
+MOTOR1_left = Dataset('MOTOR1_left')
+# VISUAL1_left = Dataset('VISUAL1_left')
+# VISUAL1_right = Dataset('VISUAL1_right')
 
 # Parameters:
-epoch = 20
-learning_rate1 = 0.01
-batch_size = 1
+epoch = 100
+batch_size = 10
 # brain_areas = [DLPFC_left, DLPFC_right, MOTOR1_left, VISUAL1_left, VISUAL1_right]
 brain_areas = [MOTOR1_left]
+height = 0
+width = 0
 
 ### Define CNN
 class Net(nn.Module):
     def __init__(self):
         super().__init__()
-        self.conv1 = nn.Conv2d(1, 1, (1, 5), padding= 0, stride = 1)
-        self.fc1 = nn.Linear(6, 1)
+        self.conv1 = nn.Conv2d(1, 1, (10, 10), padding= 0, stride = 1)
+        self.pool1 = nn.MaxPool2d((3, 3))
+        self.fc1 = nn.Linear(int((height - 9)/3) * int((width - 9)/3), 100)
+        self.fc2 = nn.Linear(100, 3)
 
     def forward(self, x):
-        x = F.tanh(self.conv1(x))
-        x = torch.flatten(x, 1) # flatten all dimensions except batch
-        x = self.fc1(x)
+        x = F.relu(self.conv1(x))
+        x = self.pool1(x)
+        x = torch.flatten(x, 1)
+        x = torch.tanh(self.fc1(x))
+        x = self.fc2(x)
         return x
 
-kf = KFold(n_splits=5)
+kf = KFold(n_splits=5, shuffle=True)
+fold = 1
 for area in brain_areas:
-    fold = 1
     print('***************************************************************')
     print('* ', area.area)
     print('***************************************************************')
@@ -52,6 +60,8 @@ for area in brain_areas:
     dataset_cp = list(area)
     mse = []
     r2 = []
+    height = area.height
+    width = area.width
 
     for train_index, test_index in kf.split(area):
         print("Fold ", fold)
@@ -61,55 +71,71 @@ for area in brain_areas:
         test_subset = torch.utils.data.dataset.Subset(dataset_cp, test_index)
         traindataloader = torch.utils.data.DataLoader(train_subset, batch_size=batch_size , shuffle=True)
         testdataloader = torch.utils.data.DataLoader(test_subset, batch_size=1 , shuffle=True)
-        optimizer = torch.optim.Adam(cnn.parameters(),lr=learning_rate1)
-        loss_func = nn.MSELoss()
+        optimizer = torch.optim.Adam(cnn.parameters(),lr=area.learning_rate)
 
         print('------------------------Training--------------------------------')
         for e in range(epoch):
             cnn.train()
-            print("Epoch ", e, ":")
             for x,y in traindataloader:
                 x = x.unsqueeze(1)
                 pred_y = cnn(x)
-                loss = loss_func(pred_y, y)
+                loss = torch.nn.functional.binary_cross_entropy_with_logits(pred_y, y)
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
-            print('Epoch :', e,'|','AEH train_loss:%.4f'%loss.data)
+            print('Epoch :', e,'|','MSE train_loss:%.4f'%loss.data)
 
-        
-        fold +=1
         print('------------------------Evaluation--------------------------------')
+        p = []
+        r = []
+        a = []
         cnn.eval()
         test_y = []
         pred_y = []
         for x, y in testdataloader:
             x = x.unsqueeze(1)
-            test_y.append(y)
-            pred_y.append(cnn(x).item())
+            test_y.append(y.tolist()[0])
+            pred_y.append(cnn(x).tolist()[0])
 
-        
-        mse.append(mean_squared_error(test_y, pred_y))
-        r2.append(r2_score(test_y, pred_y))
+        y_labels = []
+        for y in test_y:
+            y_labels.append(y.index(1))
+        y_output_labels = []
+        for y in pred_y:
+            y_output_labels.append(y.index(max(y)))
+        print(y_labels)
+        print(y_output_labels)
+        p.append(precision_score(y_labels, y_output_labels, zero_division=1, average= 'macro'))
+        r.append(recall_score(y_labels, y_output_labels, zero_division=1, average= 'macro'))
+        a.append(accuracy_score(y_labels, y_output_labels))
+        fold +=1
+
+        # mse.append(mean_squared_error(test_y, pred_y))
+        # r2.append(r2_score(test_y, pred_y))
         
 
         plt.figure(1, figsize=(10, 3))
-        plt.subplot(121)
-        plt.title("Actual Label " + area.area + str(fold))
-        ax = plt.gca()
-        ax.set_ylim([-1.1, 1.1])
-        plt.scatter([x for x in range(len(test_y))], test_y, color="blue")
+        plt.subplot(131)
+        plt.title("Actual (Blue) versus Prediceted (Red)")
+        plt.scatter([x for x in range(len(test_y))], [row[0] for row in test_y], color="blue")
+        plt.scatter([x for x in range(len(pred_y))], [row[0] for row in pred_y], color="red")
 
         plt.figure(1, figsize=(10, 3))
-        plt.subplot(122)
-        plt.title("Predicted Label")
-        ax = plt.gca()
-        ax.set_ylim([-1.1, 1.1])
-        plt.scatter([x for x in range(len(pred_y))], pred_y, color="red")
+        plt.subplot(132)
+        plt.title("Actual (Blue) versus Prediceted (Red)")
+        plt.scatter([x for x in range(len(test_y))], [row[1] for row in test_y], color="blue")
+        plt.scatter([x for x in range(len(pred_y))], [row[1] for row in pred_y], color="red")
+
+        plt.figure(1, figsize=(10, 3))
+        plt.subplot(133)
+        plt.title("Actual (Blue) versus Prediceted (Red)")
+
+        plt.scatter([x for x in range(len(test_y))], [row[2] for row in test_y], color="blue")
+        plt.scatter([x for x in range(len(pred_y))], [row[2] for row in pred_y], color="red")
         plt.show()
-        fold+=1
 
-    print("*", " Average MSE Score is: ", statistics.mean(mse))
-    print("*", " Average R2 Score is:  ", statistics.mean(r2))
-    print('***************************************************************')
-    print()
+        print("*", " Precision Score is: ", statistics.mean(p))
+        print("*", " Recall Score is: ", statistics.mean(r))
+        print("*", " Accuracy Score is: ", statistics.mean(a))
+        print('***************************************************************')
+        print()
