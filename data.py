@@ -1,5 +1,6 @@
 import os
 import cv2
+import stattools
 import numpy as np
 import pandas as pd
 import scipy.signal
@@ -20,15 +21,18 @@ class Dataset():
     dataset: the name of dataset to be loaded
     '''
     def __init__(self, task, area):
+        # Parameters
         self.task = task
         self.area = area
+
+        # Helper Attributes
         self.psd  = []
         self.ids  = []
         self.run  = []
 
-        # features
+        # Features (Raw Psychology Data: Clinical Behaviours)
         self.features  = []
-        # labels are binary
+        # Labels (Abstracted from fMRI data)
         self.labels    = []
 
         scaler = StandardScaler()
@@ -40,32 +44,35 @@ class Dataset():
                 df = pd.read_csv(os.path.join(fmri_path, filename), sep=",", header=None)
                 fs = 0.9
                 psd_df = []
+                
+                # Transfer voxels' activation values by time to by frequency (Power Spectral Density)
                 for index, row in df.iterrows():
-
                     (f, S) = scipy.signal.periodogram(np.array(row), fs, scaling='density')
-
                     psd_df.append(S)
                 
+                # Singal Strength Value -> Change in Singal Strength Value
                 for S in psd_df:
                     ave_signal_strength = np.mean(S)
                     for s in S:
                         s = (s - ave_signal_strength) if s > ave_signal_strength else (ave_signal_strength - s)
                 
                 psd_df = np.array(psd_df)
+
+                # Calculate the average singal strength of all voxel at a time point
                 psd_mean = np.mean(psd_df, axis=0)
 
                 # N = len(df.columns)
                 # fft_df = []
+                # # Transfer voxels' activation values by time to by frequency (Fast Fourier Transformation)
                 # for index, row in df.iterrows():
                 #     # Do Fourier Transform to Transfer Row from time domain to frequency domain
                 #     fft_row = fft(np.array(row))
                 #     fft_row = ifft(fft_row).real.tolist()
                 #     fft_freq_row = np.fft.fftfreq(N, d=1.111)[:N//2]
                 #     fft_df.append(fft_row[:N//2])
-                # self.images.append(fft_df)
 
 
-                # extent = [0,0,0,0]
+                # # Visualize PSD and save image
                 # plt.imshow(np.array(psd_df, dtype=float), cmap='Greys', vmin = 0, vmax= 7000, aspect='auto')
                 # plt.xlabel("Frequency")
                 # plt.ylabel("Voxels")
@@ -77,7 +84,7 @@ class Dataset():
                 self.run.append('1' if '1' in filename.split('_')[1] else '2')
 
         print("Loading Features")
-        labels_to_be_deleted = []
+        fmri_to_be_deleted = []
         for index, id in tqdm(enumerate(self.ids)):
             path_of_raw_data = os.path.join(psy_path, id)
             path_of_raw_data = os.path.join(path_of_raw_data, os.listdir(path_of_raw_data)[0])
@@ -121,10 +128,10 @@ class Dataset():
                                          round1_res_key, round2_res_key, round3_res_key, round4_res_key, round5_res_key])
                     break
             if not found:
-                # no corresponding raw psy data, remove the label
-                labels_to_be_deleted.append(index)
-        labels_to_be_deleted.reverse()
-        for index in labels_to_be_deleted:
+                # no raw psy data corresponding to this fMRI item, remove the fMRI from considerations
+                fmri_to_be_deleted.append(index)
+        fmri_to_be_deleted.reverse()
+        for index in fmri_to_be_deleted:
                 del self.ids[index]
                 del self.run[index]
                 del self.psd[index]
@@ -138,6 +145,7 @@ class Dataset():
             plt.show()
             # x.append(np.sum(p - mean_of_participants))
         print("Labels Loaded")
+        # # Show distribution of labels
         # x = np.sort(np.array(x))
         # y = np.array([i for i in range(len(x))])
         # print("Labels Loaded")
@@ -158,5 +166,73 @@ class Dataset():
         @return: sentence vector and label
         '''
         return self.features[index], self.labels[index]
+    
+#% ACW
+def acw(ts, n_lag=None, fast=True):
+    acffunc = stattools.acf(ts, nlags=n_lag, qstat=False, alpha=None, fft=fast)
+    acw5 = (2 * np.argmax(acffunc <= 0.5) - 1)
+    acw0 = (2 * np.argmax(acffunc <= 0) - 1)
+    return acw5, acw0, acffunc
+
+
+# #% PLE
+# def ple(data,nperseg, noverlap,axis):
+#     f,pxx = signal.welch(data, fs=fs, window='hann', nperseg =nperseg , noverlap=noverlap, scaling='spectrum', average='mean', axis = axis)
+#     #log_f = np.log(f)
+#     #log_p = np.log(pxx)
+#     ple = -np.polyfit(np.log(f[1:]),np.log(pxx[1:]),1)[0]
+#     return ple, f, pxx
+
+
+#%MF
+def mf(freq, psd):
+    """
+    Calculate the median frequency of a PSD
+    Adapted from Mehrshad Golesorkhi's Neuro-Helper
+    """
+    cum_sum = np.cumsum(psd)
+    medfreq = freq[np.argmax(cum_sum >= (cum_sum[-1] / 2))]
+    return medfreq
+
+#% LZC
+def lzc_norm_fact(ts):
+    """
+    The default way of calculating LZC normalization factor for a time series
+    :param ts: a time series
+    :return: normalization factor
+    """
+    return len(ts) / np.log2(len(ts))
+
+
+def lzc(ts, norm_factor=None):
+    """
+    Calculates lempel-ziv complexity of a single time series.
+    :param ts: a time-series: nx1
+    :param norm_factor: the normalization factor. If none, the output will not be normalized
+    :return: the lempel-ziv complexity
+    """
+    bin_ts = np.char.mod('%i', ts >= np.median(ts))
+    value = lempel_ziv_complexity("".join(bin_ts))
+    if norm_factor:
+        value /= norm_factor
+    return value
+
+
+def lempel_ziv_complexity(sequence):
+    sub_strings = set()
+
+    ind = 0
+    inc = 1
+    while True:
+        if ind + inc > len(sequence):
+            break
+        sub_str = sequence[ind: ind + inc]
+        if sub_str in sub_strings:
+            inc += 1
+        else:
+            sub_strings.add(sub_str)
+            ind += inc
+            inc = 1
+    return len(sub_strings)
     
 
