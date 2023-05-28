@@ -1,5 +1,6 @@
 import os
 import cv2
+import torch
 import stattools
 import numpy as np
 import pandas as pd
@@ -129,11 +130,12 @@ class Dataset():
                     round3_res_key     = sum(pd.to_numeric(df['resp.keys'])[14:19].values.tolist())
                     round4_res_key     = sum(pd.to_numeric(df['resp.keys'])[21:26].values.tolist())
                     round5_res_key     = sum(pd.to_numeric(df['resp.keys'])[28:33].values.tolist())
-                    self.features.append([round_feature, round1_res_mean, round2_res_mean, round3_res_mean, round4_res_mean, round5_res_mean,
-                                         round1_corr, round2_corr, round3_corr, round4_corr, round5_corr,
-                                         round1_res_corr, round2_res_corr, round3_res_corr, round4_res_corr, round5_res_corr,
-                                         round1_res_rt, round2_res_rt, round3_res_rt, round4_res_rt, round5_res_rt,
-                                         round1_res_key, round2_res_key, round3_res_key, round4_res_key, round5_res_key])
+                    self.features.append([[round_feature, round_feature, round_feature, round_feature, round_feature],
+                                         [round1_res_mean, round2_res_mean, round3_res_mean, round4_res_mean, round5_res_mean],
+                                         [round1_corr, round2_corr, round3_corr, round4_corr, round5_corr],
+                                         [round1_res_corr, round2_res_corr, round3_res_corr, round4_res_corr, round5_res_corr],
+                                         [round1_res_rt, round2_res_rt, round3_res_rt, round4_res_rt, round5_res_rt],
+                                         [round1_res_key, round2_res_key, round3_res_key, round4_res_key, round5_res_key]])
                     break
             if not found:
                 # no raw psy data corresponding to this fMRI item, remove the fMRI from considerations
@@ -142,6 +144,7 @@ class Dataset():
         for index in fmri_to_be_deleted:
                 del self.ids[index]
                 del self.run[index]
+
                 del self.acw[index]
 
         mean_of_participants = np.mean(self.acw, axis=0)
@@ -169,7 +172,7 @@ class Dataset():
         @param: index: int, location of data instance
         @return: sentence vector and label
         '''
-        return self.features[index], self.labels[index]
+        return torch.tensor(self.features[index],dtype=torch.float), torch.tensor(self.labels[index],dtype=torch.float)
     
 #% ACW
 def acw(ts, n_lag=None, fast=True):
