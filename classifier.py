@@ -21,15 +21,14 @@ from sklearn.metrics import mean_squared_error
 
 # DLPFC_left = Dataset('DLPFC_left')
 # DLPFC_right = Dataset('DLPFC_right')
-MOTOR1_left = Dataset('MOTOR1_left')
+# MOTOR1_left = Dataset('MOTOR1_left')
 # VISUAL1_left = Dataset('VISUAL1_left')
-# VISUAL1_right = Dataset('VISUAL1_right')
+VISUAL1_right = Dataset('VISUAL1_right')
 
 # Parameters:
-epoch = 100
 batch_size = 10
 # brain_areas = [DLPFC_left, DLPFC_right, MOTOR1_left, VISUAL1_left, VISUAL1_right]
-brain_areas = [MOTOR1_left]
+brain_areas = [VISUAL1_right]
 height = 0
 width = 0
 
@@ -51,12 +50,12 @@ class Net(nn.Module):
         return x
 
 kf = KFold(n_splits=5, shuffle=True)
-fold = 1
+
 for area in brain_areas:
     print('***************************************************************')
     print('* ', area.area)
     print('***************************************************************')
-
+    fold = 1
     dataset_cp = list(area)
     mse = []
     r2 = []
@@ -74,7 +73,7 @@ for area in brain_areas:
         optimizer = torch.optim.Adam(cnn.parameters(),lr=area.learning_rate)
 
         print('------------------------Training--------------------------------')
-        for e in range(epoch):
+        for e in tqdm(range(area.epoch)):
             cnn.train()
             for x,y in traindataloader:
                 x = x.unsqueeze(1)
@@ -83,7 +82,7 @@ for area in brain_areas:
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
-            print('Epoch :', e,'|','MSE train_loss:%.4f'%loss.data)
+            # print('Epoch :', e,'|','MSE train_loss:%.4f'%loss.data)
 
         print('------------------------Evaluation--------------------------------')
         p = []
@@ -103,8 +102,8 @@ for area in brain_areas:
         y_output_labels = []
         for y in pred_y:
             y_output_labels.append(y.index(max(y)))
-        print(y_labels)
-        print(y_output_labels)
+        # print(y_labels)
+        # print(y_output_labels)
         p.append(precision_score(y_labels, y_output_labels, zero_division=1, average= 'macro'))
         r.append(recall_score(y_labels, y_output_labels, zero_division=1, average= 'macro'))
         a.append(accuracy_score(y_labels, y_output_labels))
@@ -114,25 +113,25 @@ for area in brain_areas:
         # r2.append(r2_score(test_y, pred_y))
         
 
-        plt.figure(1, figsize=(10, 3))
-        plt.subplot(131)
-        plt.title("Actual (Blue) versus Prediceted (Red)")
-        plt.scatter([x for x in range(len(test_y))], [row[0] for row in test_y], color="blue")
-        plt.scatter([x for x in range(len(pred_y))], [row[0] for row in pred_y], color="red")
+        # plt.figure(1, figsize=(10, 3))
+        # plt.subplot(131)
+        # plt.title("Actual (Blue) versus Prediceted (Red)")
+        # plt.scatter([x for x in range(len(test_y))], [row[0] for row in test_y], color="blue")
+        # plt.scatter([x for x in range(len(pred_y))], [row[0] for row in pred_y], color="red")
 
-        plt.figure(1, figsize=(10, 3))
-        plt.subplot(132)
-        plt.title("Actual (Blue) versus Prediceted (Red)")
-        plt.scatter([x for x in range(len(test_y))], [row[1] for row in test_y], color="blue")
-        plt.scatter([x for x in range(len(pred_y))], [row[1] for row in pred_y], color="red")
+        # plt.figure(1, figsize=(10, 3))
+        # plt.subplot(132)
+        # plt.title("Actual (Blue) versus Prediceted (Red)")
+        # plt.scatter([x for x in range(len(test_y))], [row[1] for row in test_y], color="blue")
+        # plt.scatter([x for x in range(len(pred_y))], [row[1] for row in pred_y], color="red")
 
-        plt.figure(1, figsize=(10, 3))
-        plt.subplot(133)
-        plt.title("Actual (Blue) versus Prediceted (Red)")
+        # plt.figure(1, figsize=(10, 3))
+        # plt.subplot(133)
+        # plt.title("Actual (Blue) versus Prediceted (Red)")
 
-        plt.scatter([x for x in range(len(test_y))], [row[2] for row in test_y], color="blue")
-        plt.scatter([x for x in range(len(pred_y))], [row[2] for row in pred_y], color="red")
-        plt.show()
+        # plt.scatter([x for x in range(len(test_y))], [row[2] for row in test_y], color="blue")
+        # plt.scatter([x for x in range(len(pred_y))], [row[2] for row in pred_y], color="red")
+        # plt.show()
 
         print("*", " Precision Score is: ", statistics.mean(p))
         print("*", " Recall Score is: ", statistics.mean(r))

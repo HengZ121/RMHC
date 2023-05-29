@@ -25,10 +25,19 @@ label_dict = {
 }
 
 lr_dict = {
-    "MOTOR1_left" : 0.0004,
-    "DLPFC_left" : 0.0002,
+    "MOTOR1_left" : 0.00045,
+    "DLPFC_left"  : 0.0002,
     "DLPFC_right" : 0.0002,
-    "VSTMRun1" : 2,
+    "VISUAL1_left" : 0.0002,
+    "VISUAL1_right" : 0.0002,
+}
+
+epoch_dict = {
+    "MOTOR1_left" : 70,
+    "DLPFC_left" : 100,
+    "DLPFC_right" : 100,
+    "VISUAL1_left" : 100,
+    "VISUAL1_right" : 100,
 }
 
 class Dataset():
@@ -46,6 +55,7 @@ class Dataset():
         self.height = 0
         self.width = 0
         self.learning_rate = lr_dict[area]
+        self.epoch = epoch_dict[area]
 
         # Features (ACWs)
         self.features  = []
@@ -72,7 +82,7 @@ class Dataset():
                     self.labels.append(label)
                     self.features.append(acw_df)
                 elif (label_dict[filename.split('_')[1]] == 2):
-                    for _ in range(20):
+                    for _ in range(5):
                         self.labels.append(label)
                         self.features.append(acw_df)
                 else:
