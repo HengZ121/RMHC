@@ -22,13 +22,15 @@ from sklearn.metrics import mean_squared_error
 # DLPFC_left = Dataset('DLPFC_left')
 # DLPFC_right = Dataset('DLPFC_right')
 # MOTOR1_left = Dataset('MOTOR1_left')
+# MOTOR1_right = Dataset('MOTOR1_right')
+Hippo_left = Dataset('Hippo_left')
 # VISUAL1_left = Dataset('VISUAL1_left')
-VISUAL1_right = Dataset('VISUAL1_right')
+# VISUAL1_right = Dataset('VISUAL1_right')
 
 # Parameters:
 batch_size = 10
 # brain_areas = [DLPFC_left, DLPFC_right, MOTOR1_left, VISUAL1_left, VISUAL1_right]
-brain_areas = [VISUAL1_right]
+brain_areas = [ Hippo_left]
 height = 0
 width = 0
 
@@ -102,8 +104,8 @@ for area in brain_areas:
         y_output_labels = []
         for y in pred_y:
             y_output_labels.append(y.index(max(y)))
-        # print(y_labels)
-        # print(y_output_labels)
+        print(y_labels)
+        print(y_output_labels)
         p.append(precision_score(y_labels, y_output_labels, zero_division=1, average= 'macro'))
         r.append(recall_score(y_labels, y_output_labels, zero_division=1, average= 'macro'))
         a.append(accuracy_score(y_labels, y_output_labels))

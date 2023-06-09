@@ -26,18 +26,22 @@ label_dict = {
 
 lr_dict = {
     "MOTOR1_left" : 0.00045,
+    "MOTOR1_right" : 0.00045,
     "DLPFC_left"  : 0.0002,
     "DLPFC_right" : 0.0002,
     "VISUAL1_left" : 0.0002,
     "VISUAL1_right" : 0.0002,
+    "Hippo_left" : 0.0006,
 }
 
 epoch_dict = {
     "MOTOR1_left" : 70,
+    "MOTOR1_right" : 70,
     "DLPFC_left" : 100,
     "DLPFC_right" : 100,
     "VISUAL1_left" : 100,
     "VISUAL1_right" : 100,
+    "Hippo_left" : 90,
 }
 
 class Dataset():
