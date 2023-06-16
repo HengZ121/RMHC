@@ -13,13 +13,19 @@ replace the paths in code to fMRI data folder and raw psychology data folder, an
 
 The idea performance of models should be dollowing:
 
-DLPFC_left accuracy score is varying from about 83 - 100 % 
-DLPFC_right accuracy score is varying from about 73 - 100 % 
-MOTOR1_left accuracy score is varying from 81-100% when learning rate is 0.0004
+DLPFC_left accuracy score is varying from about 83-100 % 
+
+DLPFC_right accuracy score is varying from about 73-100 % 
+
+MOTOR1_left accuracy score is varying from 81-100% 
+
 MOTOR1_right accuracy score is varying from 80-100%
-VISUAL_left accuracy score is varying from about 92- 100 %  (2 out of 5 folds are 100%)
-VISUAL_right accuracy score is varying from about 85- 100 %
-Hippo_left accuracy score is varying from about 80 - 100 %
+
+VISUAL_left accuracy score is varying from about 92-100 % 
+
+VISUAL_right accuracy score is varying from about 85-100 %
+
+Hippo_left accuracy score is varying from about 80-100 %
 
 If the performance is worse than above, try to re-run the code for times
 
