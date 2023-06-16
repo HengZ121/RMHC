@@ -31,7 +31,7 @@ lr_dict = {
     "DLPFC_right" : 0.0002,
     "VISUAL1_left" : 0.0002,
     "VISUAL1_right" : 0.0002,
-    "Hippo_left" : 0.0006,
+    "Hippo_left" : 0.0008,
 }
 
 epoch_dict = {
