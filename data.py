@@ -17,9 +17,9 @@ fmri_path = r'C:\Users\Heng\Desktop\interpol-B-20230503T012138Z-004\interpol-B'
 # Location of Psychology data
 psy_path = r'C:\Users\Heng\Desktop\Raw_csv_Psychopy-20230505T025025Z-001\Raw_csv_Psychopy'
 
-label_dict = {
-    "DMSRun1" : 0,
-    "DMSRun2" : 0,
+task_dict = {
+    "DMSRun1" : "DMS",
+    "DMSRun2" : "DMS",
     "NBackRun2" : 1,
     "VSTMRun1" : 2,
 }
@@ -77,21 +77,22 @@ class Dataset():
                 for index, row in df.iterrows():
                     acffunc = acw(row)
                     acw_df.append(acffunc)
-                self.ids.append(filename.split('_')[2])
-                label = [0,0,0]
-                label[label_dict[filename.split('_')[1]]] = 1
-                if (label_dict[filename.split('_')[1]] == 1):
-                    self.labels.append(label)
-                    self.features.append(acw_df)
-                    self.labels.append(label)
-                    self.features.append(acw_df)
-                elif (label_dict[filename.split('_')[1]] == 2):
-                    for _ in range(5):
-                        self.labels.append(label)
-                        self.features.append(acw_df)
+                self.ids.append(id := filename.split('_')[2])
+                task = task_dict[filename.split('_')[1]]
+
+                if (task == "DMS"):
+                    for date in os.listdir(os.path.join(psy_path, id)):
+                        for filename2 in os.listdir(os.path.join(psy_path, id, date)):
+                            if (task in filename2) and ('.txt' in filename2):
+                                with open(os.path.join(psy_path, id, date, filename2)) as txt:
+                                    label = float(txt.read())
+                                    self.labels.append(label)
+                                    self.features.append(acw_df)
+                                break
                 else:
-                    self.labels.append(label)
-                    self.features.append(acw_df)
+                    '''Do nothing'''
+                    pass
+
         self.height = len(self.features[0])
         self.width = len(self.features[0][0])
         self.nb_voxels = len(self.features[0])
