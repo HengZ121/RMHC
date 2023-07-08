@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 from scipy.fft import fft, ifft
 from statsmodels.tsa.stattools import acf
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import MinMaxScaler
 
 # Location of fMRI data
 fmri_path = r'C:\Users\Heng\Desktop\interpol-B-20230503T012138Z-004\interpol-B'
@@ -27,7 +27,7 @@ task_dict = {
 lr_dict = {
     "MOTOR1_left" : 0.00045,
     "MOTOR1_right" : 0.00045,
-    "DLPFC_left"  : 0.0002,
+    "DLPFC_left"  : 0.00005,
     "DLPFC_right" : 0.0002,
     "VISUAL1_left" : 0.0002,
     "VISUAL1_right" : 0.0002,
@@ -37,7 +37,7 @@ lr_dict = {
 epoch_dict = {
     "MOTOR1_left" : 70,
     "MOTOR1_right" : 70,
-    "DLPFC_left" : 100,
+    "DLPFC_left" : 50,
     "DLPFC_right" : 100,
     "VISUAL1_left" : 100,
     "VISUAL1_right" : 100,
@@ -66,7 +66,9 @@ class Dataset():
         # Labels (Abstracted from fMRI data)
         self.labels    = []
 
-        print("Loading ", self.area," Labels")
+        scaler = MinMaxScaler()
+
+        print("Loading ", self.area," Labels and Features")
         for filename in tqdm(os.listdir(fmri_path)):
             # checking if it is a file
             if (area in filename):
@@ -86,13 +88,15 @@ class Dataset():
                             if (task in filename2) and ('.txt' in filename2):
                                 with open(os.path.join(psy_path, id, date, filename2)) as txt:
                                     label = float(txt.read())
-                                    self.labels.append(label)
+                                    self.labels.append([label])
                                     self.features.append(acw_df)
                                 break
                 else:
                     '''Do nothing'''
                     pass
 
+        scaler.fit(self.labels)
+        self.labels = [arr[0] for arr in scaler.transform(self.labels)]
         self.height = len(self.features[0])
         self.width = len(self.features[0][0])
         self.nb_voxels = len(self.features[0])
