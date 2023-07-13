@@ -66,34 +66,68 @@ class Dataset():
         # Labels (Abstracted from fMRI data)
         self.labels    = []
 
+        # Helper Variables
         scaler = MinMaxScaler()
 
         print("Loading ", self.area," Labels and Features")
         for filename in tqdm(os.listdir(fmri_path)):
             # checking if it is a file
-            if (area in filename):
-                df = pd.read_csv(os.path.join(fmri_path, filename), sep=",", header=None)
-                fs = 0.9
-
-                acw_df = []
-                for index, row in df.iterrows():
-                    acffunc = acw(row)
-                    acw_df.append(acffunc)
-                self.ids.append(id := filename.split('_')[2])
+            if not (id := filename.split('_')[2]) in self.ids:
                 task = task_dict[filename.split('_')[1]]
 
                 if (task == "DMS"):
+
+                    # Read brain ACW5s of subject (labels)
+                    try:
+                        DLPFC_left    = [] 
+                        df = pd.read_csv(os.path.join(fmri_path, filename[:18]+"DLPFC_left_B.1d"), sep=",", header=None)
+                        for index, row in df.iterrows():
+                            acw5 = acw(row)
+                            DLPFC_left.append(acw5)
+                        DLPFC_right   = []
+                        df = pd.read_csv(os.path.join(fmri_path, filename[:18]+"DLPFC_right_B.1d"), sep=",", header=None)
+                        for index, row in df.iterrows():
+                            acw5 = acw(row)
+                            DLPFC_right.append(acw5)
+                        MOTOR1_left   = []
+                        df = pd.read_csv(os.path.join(fmri_path, filename[:18]+"MOTOR1_left_B.1d"), sep=",", header=None)
+                        for index, row in df.iterrows():
+                            acw5 = acw(row)
+                            MOTOR1_left.append(acw5)
+                        MOTOR1_right  = []
+                        df = pd.read_csv(os.path.join(fmri_path, filename[:18]+"MOTOR1_right_B.1d"), sep=",", header=None)
+                        for index, row in df.iterrows():
+                            acw5 = acw(row)
+                            MOTOR1_right.append(acw5)
+                        # Hippo_left    = [] Too few data instances for this area
+                        VISUAL1_left  = []
+                        df = pd.read_csv(os.path.join(fmri_path, filename[:18]+"VISUAL1_left_B.1d"), sep=",", header=None)
+                        for index, row in df.iterrows():
+                            acw5 = acw(row)
+                            VISUAL1_left.append(acw5)
+                        VISUAL1_right = []
+                        df = pd.read_csv(os.path.join(fmri_path, filename[:18]+"VISUAL1_right_B.1d"), sep=",", header=None)
+                        for index, row in df.iterrows():
+                            acw5 = acw(row)
+                            VISUAL1_right.append(acw5)
+                    except  FileNotFoundError: ### If a cortex's fmri is missing, that subject's data is not counted
+                        continue
+
+                    # Read performance of subject (labels)
                     for date in os.listdir(os.path.join(psy_path, id)):
                         for filename2 in os.listdir(os.path.join(psy_path, id, date)):
                             if (task in filename2) and ('.txt' in filename2):
                                 with open(os.path.join(psy_path, id, date, filename2)) as txt:
                                     label = float(txt.read())
                                     self.labels.append([label])
-                                    self.features.append(acw_df)
-                                break
+                                    self.features.append([DLPFC_left, DLPFC_right, MOTOR1_left, MOTOR1_right, VISUAL1_left, VISUAL1_right])
+                                break                
+                    self.ids.append(id)
                 else:
                     '''Do nothing'''
                     pass
+    
+                
 
         scaler.fit(self.labels)
         self.labels = [arr[0] for arr in scaler.transform(self.labels)]
@@ -153,7 +187,7 @@ def acw(ts, n_lag=None, fast=True):
     acffunc = acf(ts, nlags=n_lag, qstat=False, alpha=None, fft=fast)
     acw5 = (2 * np.argmax(acffunc <= 0.5) - 1)
     acw0 = (2 * np.argmax(acffunc <= 0) - 1)
-    return acffunc
+    return acw5
 
 
 # #% PLE
