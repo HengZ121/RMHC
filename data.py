@@ -24,42 +24,20 @@ task_dict = {
     "VSTMRun1" : 2,
 }
 
-lr_dict = {
-    "MOTOR1_left" : 0.00045,
-    "MOTOR1_right" : 0.00045,
-    "DLPFC_left"  : 0.00005,
-    "DLPFC_right" : 0.0002,
-    "VISUAL1_left" : 0.0002,
-    "VISUAL1_right" : 0.0002,
-    "Hippo_left" : 0.0008,
-}
-
-epoch_dict = {
-    "MOTOR1_left" : 70,
-    "MOTOR1_right" : 70,
-    "DLPFC_left" : 50,
-    "DLPFC_right" : 100,
-    "VISUAL1_left" : 100,
-    "VISUAL1_right" : 100,
-    "Hippo_left" : 90,
-}
 
 class Dataset():
 
     '''
     dataset: the name of dataset to be loaded
     '''
-    def __init__(self, area):
+    def __init__(self):
         # Parameters
-        self.area = area
 
         # Helper Attributes
         self.ids  = []
         self.nb_voxels = 0
         self.height = 0
         self.width = 0
-        self.learning_rate = lr_dict[area]
-        self.epoch = epoch_dict[area]
 
         # Features (ACWs)
         self.features  = []
@@ -67,9 +45,9 @@ class Dataset():
         self.labels    = []
 
         # Helper Variables
-        scaler = MinMaxScaler()
+        self.scaler = MinMaxScaler()
 
-        print("Loading ", self.area," Labels and Features")
+        print("Loading Labels and Features")
         for filename in tqdm(os.listdir(fmri_path)):
             # checking if it is a file
             if not (id := filename.split('_')[2]) in self.ids:
@@ -77,40 +55,64 @@ class Dataset():
 
                 if (task == "DMS"):
 
-                    # Read brain ACW5s of subject (labels)
+                    missing_cortex_count = 0
+
+                    # Read brain ACW0s of subject (labels)
                     try:
                         DLPFC_left    = [] 
                         df = pd.read_csv(os.path.join(fmri_path, filename[:18]+"DLPFC_left_B.1d"), sep=",", header=None)
                         for index, row in df.iterrows():
-                            acw5 = acw(row)
-                            DLPFC_left.append(acw5)
+                            acw0= acw(row)
+                            DLPFC_left.append(acw0)
+                    except  FileNotFoundError: ### If a cortex's fmri is missing, padding it with zeros
+                        missing_cortex_count+=1
+
+                    try:
                         DLPFC_right   = []
                         df = pd.read_csv(os.path.join(fmri_path, filename[:18]+"DLPFC_right_B.1d"), sep=",", header=None)
                         for index, row in df.iterrows():
-                            acw5 = acw(row)
-                            DLPFC_right.append(acw5)
+                            acw0 = acw(row)
+                            DLPFC_right.append(acw0)
+                    except  FileNotFoundError: ### If a cortex's fmri is missing, padding it with zeros
+                        missing_cortex_count+=1
+
+                    try:
                         MOTOR1_left   = []
                         df = pd.read_csv(os.path.join(fmri_path, filename[:18]+"MOTOR1_left_B.1d"), sep=",", header=None)
                         for index, row in df.iterrows():
-                            acw5 = acw(row)
-                            MOTOR1_left.append(acw5)
+                            acw0 = acw(row)
+                            MOTOR1_left.append(acw0)
+                    except  FileNotFoundError: ### If a cortex's fmri is missing, padding it with zeros
+                        missing_cortex_count+=1
+
+                    try:
                         MOTOR1_right  = []
                         df = pd.read_csv(os.path.join(fmri_path, filename[:18]+"MOTOR1_right_B.1d"), sep=",", header=None)
                         for index, row in df.iterrows():
-                            acw5 = acw(row)
-                            MOTOR1_right.append(acw5)
-                        # Hippo_left    = [] Too few data instances for this area
+                            acw0 = acw(row)
+                            MOTOR1_right.append(acw0)
+                    except  FileNotFoundError: ### If a cortex's fmri is missing, padding it with zeros
+                        missing_cortex_count+=1
+
+                    try:
                         VISUAL1_left  = []
                         df = pd.read_csv(os.path.join(fmri_path, filename[:18]+"VISUAL1_left_B.1d"), sep=",", header=None)
                         for index, row in df.iterrows():
-                            acw5 = acw(row)
-                            VISUAL1_left.append(acw5)
+                            acw0 = acw(row)
+                            VISUAL1_left.append(acw0)
+                    except  FileNotFoundError: ### If a cortex's fmri is missing, padding it with zeros
+                        missing_cortex_count+=1
+
+                    try:
                         VISUAL1_right = []
                         df = pd.read_csv(os.path.join(fmri_path, filename[:18]+"VISUAL1_right_B.1d"), sep=",", header=None)
                         for index, row in df.iterrows():
-                            acw5 = acw(row)
-                            VISUAL1_right.append(acw5)
-                    except  FileNotFoundError: ### If a cortex's fmri is missing, that subject's data is not counted
+                            acw0 = acw(row)
+                            VISUAL1_right.append(acw0)
+                    except  FileNotFoundError: ### If a cortex's fmri is missing, padding it with zeros
+                        missing_cortex_count+=1
+                    
+                    if missing_cortex_count > 1:  ### If more than one cortex's fmri is missing, that subject's data is not counted
                         continue
 
                     # Read performance of subject (labels)
@@ -120,7 +122,7 @@ class Dataset():
                                 with open(os.path.join(psy_path, id, date, filename2)) as txt:
                                     label = float(txt.read())
                                     self.labels.append([label])
-                                    self.features.append([DLPFC_left, DLPFC_right, MOTOR1_left, MOTOR1_right, VISUAL1_left, VISUAL1_right])
+                                    self.features.append(pad_features([DLPFC_left, DLPFC_right, MOTOR1_left, MOTOR1_right, VISUAL1_left, VISUAL1_right]))
                                 break                
                     self.ids.append(id)
                 else:
@@ -129,8 +131,12 @@ class Dataset():
     
                 
 
-        scaler.fit(self.labels)
-        self.labels = [arr[0] for arr in scaler.transform(self.labels)]
+        self.scaler.fit(self.labels)
+        plt.figure(1, figsize=(10, 3))
+        plt.title("Label Value")
+        plt.scatter([x for x in range(len(self.labels))], [data for data in sorted(self.labels)], color="blue")
+        plt.show()
+        self.labels = [arr[0] for arr in self.scaler.transform(self.labels)]
         self.height = len(self.features[0])
         self.width = len(self.features[0][0])
         self.nb_voxels = len(self.features[0])
@@ -185,9 +191,9 @@ class Dataset():
 #% ACW
 def acw(ts, n_lag=None, fast=True):
     acffunc = acf(ts, nlags=n_lag, qstat=False, alpha=None, fft=fast)
-    acw5 = (2 * np.argmax(acffunc <= 0.5) - 1)
+    # acw5 = (2 * np.argmax(acffunc <= 0.5) - 1)
     acw0 = (2 * np.argmax(acffunc <= 0) - 1)
-    return acw5
+    return acw0
 
 
 # #% PLE
@@ -249,5 +255,16 @@ def lempel_ziv_complexity(sequence):
             ind += inc
             inc = 1
     return len(sub_strings)
-    
+
+def pad_features(features):
+    padded_features = []
+    max_length = 0
+    for cortex in features:
+        if len(cortex) > max_length:
+            max_length = len(cortex)
+    for cortex in features:
+        padding = max_length - len(cortex)
+        padded_features.append([0 for x in range(padding//2)] + cortex + [0 for x in range(padding - padding//2)])
+    return padded_features
+
 
