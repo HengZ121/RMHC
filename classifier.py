@@ -6,8 +6,10 @@ import torch.nn.functional as F
 from data import *
 from tqdm import tqdm
 from statistics import mean
-from sklearn.metrics import r2_score
 from sklearn.model_selection import KFold
+from sklearn.metrics import recall_score
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import precision_score
 from sklearn.metrics import mean_squared_error
 
 ds = Dataset()
@@ -15,7 +17,7 @@ ds = Dataset()
 # Parameters:
 batch_size = 8
 epoch = 60
-lr = 0.00001
+lr = 0.0002
 height = 0
 width = 0
 
@@ -25,10 +27,9 @@ class Net(nn.Module):
         super().__init__()
         self.conv1 = nn.Conv2d(1, 1, (3, 10), padding= 0, stride = 1)
         self.pool1 = nn.MaxPool2d((3, 3))
-        self.fc1 = nn.Linear(int((height - 2)/3) * int((width - 9)/3), 100)
-        self.fc2 = nn.Linear(100, 10)
-        self.fc3 = nn.Linear(10, 1)
-        self.dropout = nn.Dropout(0.2)
+        self.fc1 = nn.Linear(int((height - 2)/3) * int((width - 9)/3), 1000)
+        self.fc2 = nn.Linear(1000, 100)
+        self.fc3 = nn.Linear(100, 8)
 
     def forward(self, x):
         x = F.relu(self.conv1(x))
@@ -37,10 +38,9 @@ class Net(nn.Module):
         x = torch.tanh(self.fc1(x))
         x = torch.tanh(self.fc2(x))
         x = self.fc3(x)
-        x = self.dropout(x)
         return x
 
-kf = KFold(n_splits=4, shuffle=True)
+kf = KFold(n_splits=10, shuffle=True)
 
 
 print('***************************************************************')
@@ -81,8 +81,10 @@ for train_index, test_index in kf.split(ds):
         l.append(loss.data)
 
     print('------------------------Evaluation--------------------------------')
-    mse = []
-    r2 = []
+    p = []
+    r = []
+    a = []
+    
     cnn.eval()
     test_y = []
     pred_y = []
@@ -91,19 +93,29 @@ for train_index, test_index in kf.split(ds):
         test_y.append(y.tolist()[0])
         pred_y.append(cnn(x).tolist()[0])
 
-    print(test_y)
-    print(pred_y)
-    fold +=1
+    
+    y_labels = []
+    for y in test_y:
+        y_labels.append(y.index(1))
+    y_output_labels = []
+    for y in pred_y:
+        y_output_labels.append(y.index(max(y)))
 
-    mse.append(mean_squared_error(test_y, pred_y))
-    r2.append(r2_score(test_y, pred_y))
+
+    print(y_labels)
+    print(y_output_labels)
+
+    p.append(precision_score(y_labels, y_output_labels, zero_division=1, average= 'macro'))
+    r.append(recall_score(y_labels, y_output_labels, zero_division=1, average= 'macro'))
+    a.append(accuracy_score(y_labels, y_output_labels))
+    fold +=1
     
 
     plt.figure(1, figsize=(10, 3))
     plt.subplot(121)
     plt.title("Actual (Blue) versus Prediceted (Red)")
-    plt.scatter([x for x in range(len(test_y))], [y for y in test_y], color="blue")
-    plt.scatter([x for x in range(len(pred_y))], [y for y in pred_y], color="red")
+    plt.scatter([x for x in range(len(y_labels))], [y for y in y_labels], color="blue")
+    plt.scatter([x for x in range(len(y_output_labels))], [y for y in y_output_labels], color="red")
 
     plt.figure(1, figsize=(10, 3))
     plt.subplot(122)
@@ -112,8 +124,9 @@ for train_index, test_index in kf.split(ds):
     plt.show()
 
     
-    print("*", " MSE is: ", fold_p := statistics.mean(mse))
-    print("*", " R2 Score is: ", fold_r := statistics.mean(r2))
+    print("*", " Precision Score is: ", fold_p := statistics.mean(p))
+    print("*", " Recall Score is: ", fold_r := statistics.mean(r))
+    print("*", " Accuracy Score is: ", fold_a := statistics.mean(a))
     # if (fold_p > best_p and fold_r > best_r and fold_a > best_a):
     #     best_a, best_p, best_r = fold_a, fold_p, fold_r
     #     torch.save(cnn.state_dict(),''.join([area.area, '_', str(area.learning_rate), '_', str(area.epoch), '.pt']))
