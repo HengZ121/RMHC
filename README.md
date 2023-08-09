@@ -9,33 +9,19 @@ In this branch,
 
 replace the paths in code to fMRI data folder and raw psychology data folder, and run <python3 classifier.py>
 
-### Validation
+### Saved Model (0.pt):
 
-The idea performance of models should be dollowing:
-
-DLPFC_left accuracy score is varying from about 83-100 % 
-
-DLPFC_right accuracy score is varying from about 73-100 % 
-
-MOTOR1_left accuracy score is varying from 81-100% 
-
-MOTOR1_right accuracy score is varying from 80-100%
-
-VISUAL_left accuracy score is varying from about 92-100 % 
-
-VISUAL_right accuracy score is varying from about 85-100 %
-
-Hippo_left accuracy score is varying from about 80-100 %
-
-If the performance is worse than above, try to re-run the code for times
-
-### Saved Models
-
-This repo also contain the saved models, which achieved 100% accuracy in fold. (These .pt files)
-
-### Note
-
-It is possible to fine-tune the convolutional neural network for each dataset if interested
+Fold  4
+------------------------Training--------------------------------
+████████████████████████████████████████████████████████████████| 80/80 [00:18<00:00,  4.22it/s] 
+------------------------Evaluation--------------------------------
+[1, 3, 2, 3, 1, 1, 1, 2, 0, 1, 2, 0, 0, 0, 3, 0, 3, 2, 3, 3, 0, 2, 3, 0, 0, 1, 2, 1, 2, 3, 0, 2] *actual labels
+[1, 3, 2, 3, 1, 1, 0, 2, 0, 1, 2, 0, 0, 0, 3, 0, 3, 1, 3, 3, 0, 2, 3, 0, 0, 1, 2, 1, 2, 3, 0, 2] *output labels
+*  Precision Score is:  0.9392857142857143
+*  Recall Score is:  0.9330357142857143
+*  Accuracy Score is:  0.9375
+Model cached!
+***************************************************************
 
 
 
