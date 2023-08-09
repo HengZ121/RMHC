@@ -26,13 +26,13 @@ task_dict = {
 
 cortex_dict = {
     "DLPFC_left" : 0, 
-    "DLPFC_right": 1, 
-    "MOTOR1_left": 2,
-    "MOTOR1_right":3,
-    "VISUAL1_left":4, 
-    "VISUAL1_right":5,
-    "Hippo_left"  : 6,
-    "Hippo_right" : 7
+    "DLPFC_right": 0, 
+    "MOTOR1_left": 1,
+    "MOTOR1_right":1,
+    "VISUAL1_left":2, 
+    "VISUAL1_right":2,
+    "Hippo_left"  : 3,
+    "Hippo_right" : 3
 }
 
 class Dataset():
@@ -73,9 +73,13 @@ class Dataset():
                     acw_df.append(acffunc)
                 self.features.append(acw_df[0:250])
                 name = filename.split('_')
-                label = [0 for x in range(8)]
+                label = [0 for x in range(4)]
                 label[cortex_dict[name[3] + '_' + name[4]]] = 1
                 self.labels.append(label)
+
+                if cortex_dict[name[3] + '_' + name[4]] == 3: ## Replicate minor class
+                    self.features.append(acw_df[0:250])
+                    self.labels.append(label)
     
                 
         self.height = len(self.features[0])

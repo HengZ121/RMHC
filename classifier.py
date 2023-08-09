@@ -16,7 +16,7 @@ ds = Dataset()
 
 # Parameters:
 batch_size = 8
-epoch = 60
+epoch = 80
 lr = 0.0002
 height = 0
 width = 0
@@ -25,11 +25,11 @@ width = 0
 class Net(nn.Module):
     def __init__(self):
         super().__init__()
-        self.conv1 = nn.Conv2d(1, 1, (3, 10), padding= 0, stride = 1)
+        self.conv1 = nn.Conv2d(1, 1, (10, 20), padding= 0, stride = 1)
         self.pool1 = nn.MaxPool2d((3, 3))
-        self.fc1 = nn.Linear(int((height - 2)/3) * int((width - 9)/3), 1000)
+        self.fc1 = nn.Linear(int((height - 9)/3) * int((width - 19)/3), 1000)
         self.fc2 = nn.Linear(1000, 100)
-        self.fc3 = nn.Linear(100, 8)
+        self.fc3 = nn.Linear(100, 4)
 
     def forward(self, x):
         x = F.relu(self.conv1(x))
@@ -40,7 +40,7 @@ class Net(nn.Module):
         x = self.fc3(x)
         return x
 
-kf = KFold(n_splits=10, shuffle=True)
+kf = KFold(n_splits=8, shuffle=True)
 
 
 print('***************************************************************')
@@ -127,10 +127,11 @@ for train_index, test_index in kf.split(ds):
     print("*", " Precision Score is: ", fold_p := statistics.mean(p))
     print("*", " Recall Score is: ", fold_r := statistics.mean(r))
     print("*", " Accuracy Score is: ", fold_a := statistics.mean(a))
-    # if (fold_p > best_p and fold_r > best_r and fold_a > best_a):
-    #     best_a, best_p, best_r = fold_a, fold_p, fold_r
-    #     torch.save(cnn.state_dict(),''.join([area.area, '_', str(area.learning_rate), '_', str(area.epoch), '.pt']))
-    #     print("Model cached!")
+
+
+    if (fold_p > 0.9 and fold_r > 0.9 and fold_a > 0.9):
+        torch.save(cnn.state_dict(),'0'.join(['.pt']))
+        print("Model cached!")
     
     print('***************************************************************')
     print()
