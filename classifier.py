@@ -25,9 +25,9 @@ width = 0
 class Net(nn.Module):
     def __init__(self):
         super().__init__()
-        self.conv1 = nn.Conv2d(1, 1, (10, 20), padding= 0, stride = 1)
+        self.conv1 = nn.Conv2d(1, 1, (5, 5), padding= 0, stride = 1)
         self.pool1 = nn.MaxPool2d((3, 3))
-        self.fc1 = nn.Linear(int((height - 9)/3) * int((width - 19)/3), 1000)
+        self.fc1 = nn.Linear(int((height - 4)/3) * int((width - 4)/3), 1000)
         self.fc2 = nn.Linear(1000, 100)
         self.fc3 = nn.Linear(100, 4)
 
