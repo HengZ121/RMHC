@@ -55,6 +55,10 @@ best_a = 0
 best_p = 0
 best_r = 0
 
+p = []
+r = []
+f1 = []
+
 for train_index, test_index in kf.split(ds):
     print("Fold ", fold)
     
@@ -81,9 +85,6 @@ for train_index, test_index in kf.split(ds):
         l.append(loss.data)
 
     print('------------------------Evaluation--------------------------------')
-    p = []
-    r = []
-    a = []
     
     cnn.eval()
     test_y = []
@@ -105,9 +106,9 @@ for train_index, test_index in kf.split(ds):
     print(y_labels)
     print(y_output_labels)
 
-    p.append(precision_score(y_labels, y_output_labels, zero_division=1, average= 'macro'))
-    r.append(recall_score(y_labels, y_output_labels, zero_division=1, average= 'macro'))
-    a.append(accuracy_score(y_labels, y_output_labels))
+    p.append(p_in_fold:=precision_score(y_labels, y_output_labels, zero_division=1, average= 'macro'))
+    r.append(r_in_fold := recall_score(y_labels, y_output_labels, zero_division=1, average= 'macro'))
+    f1.append(f1_in_fold := f1_score(y_labels, y_output_labels, zero_division=1, average= 'macro'))
     fold +=1
     
 
@@ -124,14 +125,17 @@ for train_index, test_index in kf.split(ds):
     plt.show()
 
     
-    print("*", " Precision Score is: ", fold_p := statistics.mean(p))
-    print("*", " Recall Score is: ", fold_r := statistics.mean(r))
-    print("*", " Accuracy Score is: ", fold_a := statistics.mean(a))
+    print("*", " Precision Score is: ", p_in_fold)
+    print("*", " Recall Score is: ", r_in_fold)
+    print("*", " Accuracy Score is: ", f1_in_fold)
 
 
-    if (fold_p > 0.9 and fold_r > 0.9 and fold_a > 0.9):
+    if (p_in_fold > 0.95 and r_in_fold > 0.95 and f1_in_fold > 0.95):
         torch.save(cnn.state_dict(),'0'.join(['.pt']))
         print("Model cached!")
     
     print('***************************************************************')
     print()
+print("*", " Precision Score is: ", fold_p := statistics.mean(p))
+print("*", " Recall Score is: ", fold_r := statistics.mean(r))
+print("*", " Accuracy Score is: ", fold_a := statistics.mean(f1))
