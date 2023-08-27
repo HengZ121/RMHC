@@ -136,6 +136,6 @@ for train_index, test_index in kf.split(ds):
     
     print('***************************************************************')
     print()
-print("*", " Precision Score is: ", fold_p := statistics.mean(p))
-print("*", " Recall Score is: ", fold_r := statistics.mean(r))
-print("*", " Accuracy Score is: ", fold_a := statistics.mean(f1))
+print("*", "Average Precision Score is: ", fold_p := statistics.mean(p))
+print("*", "Average Recall Score is: ", fold_r := statistics.mean(r))
+print("*", "Average Accuracy Score is: ", fold_a := statistics.mean(f1))
