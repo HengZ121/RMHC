@@ -17,20 +17,19 @@ from sklearn.model_selection import KFold
 from sklearn.metrics import recall_score
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import precision_score
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import f1_score
 
 DLPFC_left = Dataset('DLPFC_left')
-# DLPFC_right = Dataset('DLPFC_right')
-# MOTOR1_left = Dataset('MOTOR1_left')
-# MOTOR1_right = Dataset('MOTOR1_right')
-# Hippo_left = Dataset('Hippo_left')
-# VISUAL1_left = Dataset('VISUAL1_left')
-# VISUAL1_right = Dataset('VISUAL1_right')
+DLPFC_right = Dataset('DLPFC_right')
+MOTOR1_left = Dataset('MOTOR1_left')
+MOTOR1_right = Dataset('MOTOR1_right')
+Hippo_left = Dataset('Hippo_left')
+VISUAL1_left = Dataset('VISUAL1_left')
+VISUAL1_right = Dataset('VISUAL1_right')
 
 # Parameters:
 batch_size = 10
-# brain_areas = [DLPFC_left, DLPFC_right, MOTOR1_left, VISUAL1_left, VISUAL1_right]
-brain_areas = [ DLPFC_left]
+brain_areas = [DLPFC_left, DLPFC_right, MOTOR1_left, MOTOR1_right, Hippo_left, VISUAL1_left, VISUAL1_right]
 height = 0
 width = 0
 
@@ -63,6 +62,9 @@ for area in brain_areas:
     r2 = []
     height = area.height
     width = area.width
+    p = []
+    r = []
+    f1 = []
 
     best_a = 0
     best_p = 0
@@ -70,6 +72,7 @@ for area in brain_areas:
 
     for train_index, test_index in kf.split(area):
         print("Fold ", fold)
+        l = []
         
         cnn = Net()
         train_subset = torch.utils.data.dataset.Subset(dataset_cp, train_index)
@@ -88,12 +91,10 @@ for area in brain_areas:
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
+            l.append(loss.data)
             # print('Epoch :', e,'|','MSE train_loss:%.4f'%loss.data)
 
         print('------------------------Evaluation--------------------------------')
-        p = []
-        r = []
-        a = []
         cnn.eval()
         test_y = []
         pred_y = []
@@ -110,9 +111,9 @@ for area in brain_areas:
             y_output_labels.append(y.index(max(y)))
         print(y_labels)
         print(y_output_labels)
-        p.append(precision_score(y_labels, y_output_labels, zero_division=1, average= 'macro'))
-        r.append(recall_score(y_labels, y_output_labels, zero_division=1, average= 'macro'))
-        a.append(accuracy_score(y_labels, y_output_labels))
+        p.append(p_in_fold:=precision_score(y_labels, y_output_labels, zero_division=1, average= 'macro'))
+        r.append(r_in_fold := recall_score(y_labels, y_output_labels, zero_division=1, average= 'macro'))
+        f1.append(f1_in_fold := f1_score(y_labels, y_output_labels, zero_division=1, average= 'macro'))
         fold +=1
 
         # mse.append(mean_squared_error(test_y, pred_y))
@@ -120,28 +121,20 @@ for area in brain_areas:
         
 
         plt.figure(1, figsize=(10, 3))
-        plt.subplot(131)
+        plt.subplot(121)
         plt.title("Actual (Blue) versus Prediceted (Red)")
-        plt.scatter([x for x in range(len(test_y))], [row[0] for row in test_y], color="blue")
-        plt.scatter([x for x in range(len(pred_y))], [row[0] for row in pred_y], color="red")
+        plt.scatter([x for x in range(len(y_labels))], [y for y in y_labels], color="blue")
+        plt.scatter([x for x in range(len(y_output_labels))], [y for y in y_output_labels], color="red")
 
         plt.figure(1, figsize=(10, 3))
-        plt.subplot(132)
-        plt.title("Actual (Blue) versus Prediceted (Red)")
-        plt.scatter([x for x in range(len(test_y))], [row[1] for row in test_y], color="blue")
-        plt.scatter([x for x in range(len(pred_y))], [row[1] for row in pred_y], color="red")
-
-        plt.figure(1, figsize=(10, 3))
-        plt.subplot(133)
-        plt.title("Actual (Blue) versus Prediceted (Red)")
-
-        plt.scatter([x for x in range(len(test_y))], [row[2] for row in test_y], color="blue")
-        plt.scatter([x for x in range(len(pred_y))], [row[2] for row in pred_y], color="red")
+        plt.subplot(122)
+        plt.title("Loss")
+        plt.scatter([x for x in range(len(l))], [data for data in l], color="blue")
         plt.show()
+        print("*", " Precision Score is: ", p_in_fold)
+        print("*", " Recall Score is: ", r_in_fold)
+        print("*", " F1 Score is: ", f1_in_fold)
         
-        print("*", " Precision Score is: ", fold_p := statistics.mean(p))
-        print("*", " Recall Score is: ", fold_r := statistics.mean(r))
-        print("*", " Accuracy Score is: ", fold_a := statistics.mean(a))
         # if (fold_p > best_p and fold_r > best_r and fold_a > best_a):
         #     best_a, best_p, best_r = fold_a, fold_p, fold_r
         #     torch.save(cnn.state_dict(),''.join([area.area, '_', str(area.learning_rate), '_', str(area.epoch), '.pt']))
@@ -149,3 +142,6 @@ for area in brain_areas:
         
         print('***************************************************************')
         print()
+    print("*", " Precision Score is: ", fold_p := statistics.mean(p))
+    print("*", " Recall Score is: ", fold_r := statistics.mean(r))
+    print("*", " F1 Score is: ", fold_a := statistics.mean(f1))
