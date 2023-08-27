@@ -10,7 +10,7 @@ from sklearn.model_selection import KFold
 from sklearn.metrics import recall_score
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import precision_score
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import f1_score
 
 ds = Dataset()
 
@@ -73,7 +73,7 @@ for train_index, test_index in kf.split(ds):
         for x,y in traindataloader:
             x = x.unsqueeze(1)
             pred_y = cnn(x)
-            loss = torch.nn.functional.mse_loss(pred_y, y)
+            loss = torch.nn.functional.binary_cross_entropy_with_logits(pred_y, y)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
